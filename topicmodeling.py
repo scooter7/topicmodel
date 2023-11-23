@@ -73,8 +73,23 @@ def main():
         if papers:
             fig = create_network_graph(papers)
             st.plotly_chart(fig, use_container_width=True)
+
+            # Prepare data for the table
+            table_data = [{
+                'Title': paper.get('title', ['N/A'])[0], 
+                'Authors': ', '.join([author.get('name') for author in paper.get('authors', []) if 'name' in author]),
+                'Year': paper.get('year', 'N/A'), 
+                'Citations': len(paper.get('citations', []))
+            } for paper in papers]
+
+            # Display the table
+            df = pd.DataFrame(table_data)
+            st.write(df)
         else:
             st.write("No papers found with the given criteria.")
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()
