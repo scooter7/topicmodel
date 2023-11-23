@@ -12,7 +12,8 @@ def fetch_papers(topic, max_results=10, retry_limit=3, retry_delay=5):
     papers = []
     retry_count = 0
 
-    while len(papers) < max_results and retry_count < retry_limit:
+    # Fetch more papers initially
+    while len(papers) < max_results * 2 and retry_count < retry_limit:
         try:
             paper = next(search_query)
             papers.append(paper)
@@ -23,9 +24,9 @@ def fetch_papers(topic, max_results=10, retry_limit=3, retry_delay=5):
             retry_count += 1
             time.sleep(retry_delay)
 
-    if retry_count == retry_limit:
-        logging.warning("Reached maximum retry limit. Some papers may not be fetched.")
-    return papers
+    # Sort papers by citation count and select the top results
+    papers.sort(key=lambda x: x.get('citedby', 0), reverse=True)
+    return papers[:max_results]
 
 def create_graph(papers):
     G = nx.Graph()
@@ -41,13 +42,13 @@ def create_graph(papers):
     return G
 
 def show_graph(G):
-    net = Network(height='500px', width='100%', bgcolor='#222222', font_color='white', notebook=True)
+    net = Network(height='500px', width='100%', bgcolor='#222222', font_color='white')
     net.from_nx(G)
-    net.show('graph.html')
-
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.html')
-    net.save_graph(tmp_file.name)
-    return tmp_file.name
+    
+    # Save the graph to a temporary file and return its path
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.html') as tmp_file:
+        net.save_graph(tmp_file.name)
+        return tmp_file.name
 
 def main():
     st.title("Scholarly Topic Modeling")
