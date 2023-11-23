@@ -41,24 +41,26 @@ def create_network_graph(papers):
     G = nx.Graph()
 
     for paper in papers:
-        paper_id = paper['paperId']
-        G.add_node(paper_id, label=paper['title'])
+        paper_id = paper.get('paperId')
+        if paper_id is None:
+            continue
+
+        G.add_node(paper_id, label=paper.get('title', 'No Title'))
 
         for citation in paper.get('citations', []):
-            G.add_edge(paper_id, citation['paperId'])
+            cited_paper_id = citation.get('paperId')
+            if cited_paper_id is None:
+                continue
 
-    pos = nx.spring_layout(G)  # positions for all nodes
+            if not G.has_node(cited_paper_id):
+                G.add_node(cited_paper_id)
 
-    # nodes
-    nx.draw_networkx_nodes(G, pos, node_size=700)
+            G.add_edge(paper_id, cited_paper_id)
 
-    # edges
-    nx.draw_networkx_edges(G, pos)
-
-    # labels
-    nx.draw_networkx_labels(G, pos, font_size=8)
-
-    plt.axis('off')
+    pos = nx.spring_layout(G)
+    plt.figure(figsize=(12, 12))
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', edge_color='gray')
+    plt.title("Citation Network Graph")
     plt.show()
 
     return plt
