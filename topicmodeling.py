@@ -5,7 +5,7 @@ import pandas as pd
 import time
 
 def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retries=3):
-    url = f"https://api.semanticscholar.org/graph/v1/paper/search"
+    url = "https://api.semanticscholar.org/graph/v1/paper/search"
     params = {
         "query": topic,
         "limit": max_results,
@@ -65,8 +65,9 @@ def main():
     run_button = st.button('Run Query', key="run_query_button")
 
     if run_button and topic:
-        papers = fetch_semantic_scholar_papers(topic, max_results, min_citations, start_year, end_year)
-        if papers:
+        if papers := fetch_semantic_scholar_papers(
+            topic, max_results, min_citations, start_year, end_year
+        ):
             fig = create_network_graph(papers)
             st.plotly_chart(fig, use_container_width=True)
 
