@@ -3,7 +3,6 @@ from scholarly import scholarly
 import pandas as pd
 import plotly.graph_objects as go
 import time
-import logging
 
 def fetch_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retry_limit=3, retry_delay=5):
     search_query = scholarly.search_pubs(topic)
