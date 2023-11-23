@@ -1,35 +1,25 @@
 import streamlit as st
-from scholarly import scholarly
+import requests
 import pandas as pd
 import plotly.graph_objects as go
-import time
 
-def fetch_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retry_limit=3, retry_delay=5):
-    search_query = scholarly.search_pubs(topic)
-    papers = []
-    retry_count = 0
-
-    print(f"Searching for topic: {topic}")  # Debugging line
-
-    while len(papers) < max_results and retry_count < retry_limit:
-        try:
-            paper = next(search_query)
-            year = int(paper.bib.get('year', 0))
-            citedby = paper.bib.get('citedby', 0)
-
-            if citedby >= min_citations and (start_year is None or year >= start_year) and (end_year is None or year <= end_year):
-                papers.append(paper)
-                print(f"Found paper: {paper.bib['title']} with {citedby} citations")  # Debugging line
-        except StopIteration:
-            print("No more papers found.")  # Debugging line
-            break
-        except Exception as e:
-            print(f"An error occurred: {e}")  # Debugging line
-            retry_count += 1
-            time.sleep(retry_delay)
-
-    print(f"Total papers fetched: {len(papers)}")  # Debugging line
-    return papers
+def fetch_crossref_articles(topic, max_results=10, min_citations=0, start_year=None, end_year=None):
+    url = "https://api.crossref.org/works"
+    params = {
+        "query": topic,
+        "rows": max_results,
+        "sort": "is-referenced-by-count",
+        "order": "desc"
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 200:
+        items = response.json()['message']['items']
+        filtered_items = [item for item in items if item['is-referenced-by-count'] >= min_citations and 
+                          'published-print' in item and 
+                          start_year <= item['published-print']['date-parts'][0][0] <= end_year]
+        return filtered_items
+    else:
+        return []
 
 def create_plotly_graph(papers):
     edge_x = []
@@ -41,7 +31,7 @@ def create_plotly_graph(papers):
     for i, paper in enumerate(papers):
         node_x.append(i)
         node_y.append(i)
-        node_text.append(paper.bib['title'])
+        node_text.append(paper['title'][0] if 'title' in paper else 'No Title')
 
     node_trace = go.Scatter(
         x=node_x, y=node_y,
@@ -67,18 +57,18 @@ def main():
     min_citations = st.slider("Minimum citations", 0, 100, 10)
     start_year = st.number_input("Start Year", min_value=1900, max_value=2023, value=2000)
     end_year = st.number_input("End Year", min_value=1900, max_value=2023, value=2023)
-
-    # Run button
     run_button = st.button('Run Query')
 
     if run_button and topic:
-        papers = fetch_papers(topic, max_results, min_citations, start_year, end_year)
+        papers = fetch_crossref_articles(topic, max_results, min_citations, start_year, end_year)
         if papers:
             fig = create_plotly_graph(papers)
             st.plotly_chart(fig, use_container_width=True)
 
-            data = [{'Title': paper.bib['title'], 'Authors': paper.bib.get('author', 'N/A'), 
-                     'Year': paper.bib.get('year', 'N/A'), 'Citations': paper.bib.get('citedby', 0)} 
+            data = [{'Title': paper.get('title', ['N/A'])[0], 
+                     'Authors': ', '.join([author['name'] for author in paper.get('author', [])]), 
+                     'Year': paper['published-print']['date-parts'][0][0] if 'published-print' in paper else 'N/A', 
+                     'Citations': paper.get('is-referenced-by-count', 0)} 
                     for paper in papers]
             df = pd.DataFrame(data)
             st.write(df)
