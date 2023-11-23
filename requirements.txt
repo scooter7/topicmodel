@@ -3,5 +3,3 @@ requests
 pandas
 networkx
 matplotlib
-plotly
-scipy
