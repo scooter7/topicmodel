@@ -1,84 +1,47 @@
 import streamlit as st
 import requests
-import pandas as pd
 import plotly.graph_objects as go
 
-def fetch_crossref_articles(topic, max_results=10, min_citations=0, start_year=None, end_year=None):
-    url = "https://api.crossref.org/works"
+def fetch_semantic_scholar_papers(topic, max_results=10):
+    url = f"https://api.semanticscholar.org/graph/v1/paper/search"
     params = {
         "query": topic,
-        "rows": max_results,
-        "sort": "is-referenced-by-count",
-        "order": "desc"
+        "limit": max_results,
+        "fields": "title,authors,year,citations"
     }
     response = requests.get(url, params=params)
     if response.status_code == 200:
-        items = response.json()['message']['items']
-        filtered_items = [item for item in items if item['is-referenced-by-count'] >= min_citations and 
-                          'published-print' in item and 
-                          start_year <= item['published-print']['date-parts'][0][0] <= end_year]
-        return filtered_items
+        return response.json()['data']
     else:
+        st.write("Failed to fetch data:", response.status_code)
         return []
 
-def create_plotly_graph(papers):
-    node_x = []
-    node_y = []
-    node_text = []
-    node_size = []
+def create_network_graph(papers):
+    fig = go.Figure()
 
-    for i, paper in enumerate(papers):
-        node_x.append(i)
-        node_y.append(len(papers) - i)  # To spread nodes vertically
-        node_text.append(paper.get('title', ['N/A'])[0] if 'title' in paper else 'No Title')
-        node_size.append(paper.get('is-referenced-by-count', 0) + 10)  # Adding 10 to ensure minimum size
+    # Add nodes and edges (citations)
+    for paper in papers:
+        paper_id = paper['paperId']
+        fig.add_trace(go.Scatter(x=[paper_id], y=[0], mode='markers+text', text=paper['title'], name=paper_id))
 
-    node_trace = go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        text=node_text,
-        marker=dict(size=node_size, sizemode='area', sizeref=2.*max(node_size)/(40.**2), line_width=2),
-        hoverinfo='text')
-
-    fig = go.Figure(data=[node_trace],
-                    layout=go.Layout(
-                        title="Papers and Citation Counts",
-                        showlegend=False,
-                        hovermode='closest',
-                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
-                    )
+        for citation in paper.get('citations', []):
+            cited_paper_id = citation['paperId']
+            fig.add_trace(go.Scatter(x=[paper_id, cited_paper_id], y=[0, 0], mode='lines', name=f"Citation: {cited_paper_id}"))
 
     return fig
 
 def main():
-    st.title("Scholarly Topic Modeling")
-
+    st.title("Semantic Scholar Citation Network")
     topic = st.text_input("Enter a Topic", "Machine Learning")
-    max_results = st.slider("Max number of results", 5, 250, 10)
-    min_citations = st.slider("Minimum citations", 0, 10000, 10)
-    start_year = st.number_input("Start Year", min_value=1900, max_value=2023, value=2000)
-    end_year = st.number_input("End Year", min_value=1900, max_value=2023, value=2023)
     run_button = st.button('Run Query')
 
     if run_button and topic:
-        papers = fetch_crossref_articles(topic, max_results, min_citations, start_year, end_year)
+        papers = fetch_semantic_scholar_papers(topic)
         if papers:
-            fig = create_plotly_graph(papers)
+            fig = create_network_graph(papers)
             st.plotly_chart(fig, use_container_width=True)
-
-            data = [{
-                'Title': paper.get('title', ['N/A'])[0], 
-                'Authors': ', '.join([f"{author.get('given', '')} {author.get('family', '')}".strip() for author in paper.get('author', [])]), 
-                'Year': paper['published-print']['date-parts'][0][0] if 'published-print' in paper else 'N/A', 
-                'Citations': paper.get('is-referenced-by-count', 0)
-            } for paper in papers]
-            df = pd.DataFrame(data)
-            st.write(df)
         else:
             st.write("No papers found with the given criteria.")
 
 if __name__ == "__main__":
     main()
-
-
