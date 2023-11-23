@@ -65,11 +65,12 @@ def main():
             fig = create_plotly_graph(papers)
             st.plotly_chart(fig, use_container_width=True)
 
-            data = [{'Title': paper.get('title', ['N/A'])[0], 
-                     'Authors': ', '.join([author['name'] for author in paper.get('author', [])]), 
-                     'Year': paper['published-print']['date-parts'][0][0] if 'published-print' in paper else 'N/A', 
-                     'Citations': paper.get('is-referenced-by-count', 0)} 
-                    for paper in papers]
+            data = [{
+                'Title': paper.get('title', ['N/A'])[0], 
+                'Authors': ', '.join([author.get('name', 'Unknown') for author in paper.get('author', [])]), 
+                'Year': paper['published-print']['date-parts'][0][0] if 'published-print' in paper else 'N/A', 
+                'Citations': paper.get('is-referenced-by-count', 0)
+            } for paper in papers]
             df = pd.DataFrame(data)
             st.write(df)
         else:
@@ -77,3 +78,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
