@@ -67,7 +67,7 @@ def main():
 
             data = [{
                 'Title': paper.get('title', ['N/A'])[0], 
-                'Authors': ', '.join([author.get('name', 'Unknown') for author in paper.get('author', [])]), 
+                'Authors': ', '.join([f"{author.get('given', '')} {author.get('family', '')}".strip() for author in paper.get('author', [])]), 
                 'Year': paper['published-print']['date-parts'][0][0] if 'published-print' in paper else 'N/A', 
                 'Citations': paper.get('is-referenced-by-count', 0)
             } for paper in papers]
@@ -78,4 +78,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
