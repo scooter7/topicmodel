@@ -2,29 +2,27 @@ import streamlit as st
 import requests
 import plotly.graph_objects as go
 
-def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None):
+def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retries=3):
     url = f"https://api.semanticscholar.org/graph/v1/paper/search"
     params = {
         "query": topic,
         "limit": max_results,
         "fields": "title,authors,year,citations"
     }
-    response = requests.get(url, params=params)
-    papers = []
 
-    if response.status_code == 200:
-        for paper in response.json()['data']:
-            year = int(paper.get('year', 0))
-            citations = len(paper.get('citations', []))
+    attempt = 0
+    while attempt < retries:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            # Process and filter papers here
+            return papers
+        else:
+            st.write(f"Attempt {attempt + 1} failed with status code:", response.status_code)
+            attempt += 1
+            time.sleep(1)  # Wait for a second before retrying
 
-            if citations >= min_citations and (start_year is None or year >= start_year) and (end_year is None or year <= end_year):
-                papers.append(paper)
-                if len(papers) >= max_results:
-                    break
-    else:
-        st.write("Failed to fetch data:", response.status_code)
-    
-    return papers
+    st.write("Failed to fetch data after multiple attempts.")
+    return []
 
 def create_network_graph(papers):
     fig = go.Figure()
