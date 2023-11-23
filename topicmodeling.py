@@ -4,11 +4,14 @@ import pandas as pd
 import plotly.graph_objects as go
 import time
 
-def fetch_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None):
+def fetch_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retry_limit=3, retry_delay=5):
     search_query = scholarly.search_pubs(topic)
     papers = []
+    retry_count = 0
 
-    while len(papers) < max_results:
+    print(f"Searching for topic: {topic}")  # Debugging line
+
+    while len(papers) < max_results and retry_count < retry_limit:
         try:
             paper = next(search_query)
             year = int(paper.bib.get('year', 0))
@@ -16,12 +19,16 @@ def fetch_papers(topic, max_results=10, min_citations=0, start_year=None, end_ye
 
             if citedby >= min_citations and (start_year is None or year >= start_year) and (end_year is None or year <= end_year):
                 papers.append(paper)
+                print(f"Found paper: {paper.bib['title']} with {citedby} citations")  # Debugging line
         except StopIteration:
+            print("No more papers found.")  # Debugging line
             break
-        except Exception:
-            # You may choose to handle exceptions differently or not at all
-            break
+        except Exception as e:
+            print(f"An error occurred: {e}")  # Debugging line
+            retry_count += 1
+            time.sleep(retry_delay)
 
+    print(f"Total papers fetched: {len(papers)}")  # Debugging line
     return papers
 
 def create_plotly_graph(papers):
