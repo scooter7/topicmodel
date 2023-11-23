@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
-import networkx as nx
-import matplotlib.pyplot as plt
 import pandas as pd
+from pyvis.network import Network
+import streamlit.components.v1 as components
 
 def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retries=3):
     url = f"https://api.semanticscholar.org/graph/v1/paper/search"
@@ -29,7 +29,7 @@ def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_
         else:
             st.write(f"Attempt {attempt + 1} failed with status code:", response.status_code)
             attempt += 1
-            time.sleep(1)  # Wait for a second before retrying
+            time.sleep(1)
 
     if not papers:
         st.write("Failed to fetch data after multiple attempts.")
@@ -37,26 +37,35 @@ def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_
     return papers
 
 def create_network_graph(papers):
-    G = nx.Graph()
+    net = Network(height="750px", width="100%", bgcolor="#222222", font_color="white")
 
     for paper in papers:
         paper_id = paper.get('paperId')
         paper_title = ' '.join(paper.get('title', 'N/A')) if paper.get('title') else 'N/A'
-        G.add_node(paper_id, label=paper_title)
+        net.add_node(paper_id, label=paper_title, title=paper_title)
 
         for citation in paper.get('citations', []):
             cited_paper_id = citation.get('paperId')
             if cited_paper_id is None:
                 continue
 
-            G.add_edge(paper_id, cited_paper_id)
+            net.add_node(cited_paper_id, label=cited_paper_id, title=cited_paper_id)
+            net.add_edge(paper_id, cited_paper_id)
 
-    plt.figure(figsize=(15, 15))
-    pos = nx.spring_layout(G, k=0.5)
-    nx.draw(G, pos, with_labels=True, labels=nx.get_node_attributes(G, 'label'), 
-            node_color='skyblue', edge_color='gray', font_size=8)
-    plt.title("Citation Network Graph")
-    return plt
+    net.set_options("""
+    var options = {
+      "physics": {
+        "barnesHut": {
+          "gravitationalConstant": -80000,
+          "centralGravity": 0.3,
+          "springLength": 95
+        },
+        "minVelocity": 0.75
+      }
+    }
+    """)
+
+    return net
 
 def main():
     st.title("Semantic Scholar Citation Network")
@@ -70,8 +79,12 @@ def main():
     if run_button and topic:
         papers = fetch_semantic_scholar_papers(topic, max_results, min_citations, start_year, end_year)
         if papers:
-            graph_plot = create_network_graph(papers)
-            st.pyplot(graph_plot)
+            net = create_network_graph(papers)
+            path = "temp_network.html"
+            net.save_graph(path)
+            HtmlFile = open(path, 'r', encoding='utf-8')
+            source_code = HtmlFile.read()
+            components.html(source_code, width=700, height=750)
 
             table_data = [{
                 'Title': ' '.join(paper.get('title', ['N/A'])) if paper.get('title') else 'N/A',
