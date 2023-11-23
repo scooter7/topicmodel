@@ -14,8 +14,8 @@ def fetch_papers(topic, max_results=10, retry_limit=3, retry_delay=5):
 
     while len(papers) < max_results and retry_count < retry_limit:
         try:
-            paper = next(search_query)
-            papers.append(paper)
+            paper = next(search_query).fill()
+            papers.append(paper.__dict__)
         except StopIteration:
             break
         except Exception as e:
@@ -30,11 +30,14 @@ def fetch_papers(topic, max_results=10, retry_limit=3, retry_delay=5):
 def create_graph(papers):
     G = nx.Graph()
     for paper in papers:
-        paper_title = paper.bib['title']
-        G.add_node(paper_title, title=paper_title, size=paper.citedby if 'citedby' in paper.bib else 10)
-        for author in paper.bib['author'].split(' and '):
-            G.add_node(author, title=author, size=20)
-            G.add_edge(paper_title, author)
+        # Check if 'title' and 'author' are in the paper dictionary
+        if 'title' in paper and 'author' in paper:
+            paper_title = paper['title']
+            G.add_node(paper_title, title=paper_title, size=paper.get('citedby', 10))
+            authors = paper['author'].split(' and ')
+            for author in authors:
+                G.add_node(author, title=author, size=20)
+                G.add_edge(paper_title, author)
     return G
 
 def show_graph(G):
