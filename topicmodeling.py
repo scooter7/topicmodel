@@ -2,7 +2,8 @@ import streamlit as st
 import requests
 import plotly.graph_objects as go
 import pandas as pd
-import time
+import networkx as nx  # Import networkx
+import matplotlib.pyplot as plt  # Import matplotlib for plotting
 
 def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retries=3):
     url = f"https://api.semanticscholar.org/graph/v1/paper/search"
