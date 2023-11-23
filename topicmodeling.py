@@ -41,26 +41,21 @@ def create_network_graph(papers):
 
     for paper in papers:
         paper_id = paper.get('paperId')
-        if paper_id is None:
-            continue
-
-        G.add_node(paper_id, label=paper.get('title', 'No Title'))
+        paper_title = ' '.join(paper.get('title', 'N/A')) if paper.get('title') else 'N/A'
+        G.add_node(paper_id, label=paper_title)
 
         for citation in paper.get('citations', []):
             cited_paper_id = citation.get('paperId')
             if cited_paper_id is None:
                 continue
 
-            if not G.has_node(cited_paper_id):
-                G.add_node(cited_paper_id)
-
             G.add_edge(paper_id, cited_paper_id)
 
-    plt.figure(figsize=(12, 12))
-    pos = nx.spring_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color='skyblue', edge_color='gray')
+    plt.figure(figsize=(15, 15))
+    pos = nx.spring_layout(G, k=0.5)
+    nx.draw(G, pos, with_labels=True, labels=nx.get_node_attributes(G, 'label'), 
+            node_color='skyblue', edge_color='gray', font_size=8)
     plt.title("Citation Network Graph")
-
     return plt
 
 def main():
@@ -79,7 +74,7 @@ def main():
             st.pyplot(graph_plot)
 
             table_data = [{
-                'Title': paper.get('title', ['N/A'])[0], 
+                'Title': ' '.join(paper.get('title', ['N/A'])) if paper.get('title') else 'N/A',
                 'Authors': ', '.join([author.get('name') for author in paper.get('authors', []) if 'name' in author]),
                 'Year': paper.get('year', 'N/A'), 
                 'Citations': len(paper.get('citations', []))
