@@ -37,23 +37,30 @@ def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_
     return papers
 
 def create_network_graph(papers):
-    fig = go.Figure()
+    G = nx.Graph()
 
     for paper in papers:
         paper_id = paper['paperId']
-        fig.add_trace(go.Scatter(x=[paper_id], y=[0], mode='markers+text', text=paper['title'], name=paper_id))
+        G.add_node(paper_id, label=paper['title'])
 
         for citation in paper.get('citations', []):
-            cited_paper_id = citation['paperId']
-            fig.add_trace(go.Scatter(x=[paper_id, cited_paper_id], y=[0, 0], mode='lines'))
+            G.add_edge(paper_id, citation['paperId'])
 
-    fig.update_layout(
-        title="Paper Citation Network",
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-    )
+    pos = nx.spring_layout(G)  # positions for all nodes
 
-    return fig
+    # nodes
+    nx.draw_networkx_nodes(G, pos, node_size=700)
+
+    # edges
+    nx.draw_networkx_edges(G, pos)
+
+    # labels
+    nx.draw_networkx_labels(G, pos, font_size=8)
+
+    plt.axis('off')
+    plt.show()
+
+    return plt
 
 def main():
     st.title("Semantic Scholar Citation Network")
