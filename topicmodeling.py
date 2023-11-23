@@ -38,13 +38,24 @@ def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_
 def create_network_graph(papers):
     fig = go.Figure()
 
+    # Add nodes (papers)
     for paper in papers:
-        paper_id = paper['paperId']
-        fig.add_trace(go.Scatter(x=[paper_id], y=[0], mode='markers+text', text=paper['title'], name=paper_id))
+        title = paper.get('title', 'No Title')[0]  # Assuming title is a list
+        authors = ', '.join([author.get('name') for author in paper.get('authors', []) if 'name' in author])
+        node_label = f"{title} by {authors}"
+        fig.add_trace(go.Scatter(x=[paper['paperId']], y=[0], mode='markers+text', text=node_label, name=paper['paperId']))
 
+        # Add edges (citations)
+        # This part needs to be adjusted based on how citations are structured in the Semantic Scholar data
         for citation in paper.get('citations', []):
-            cited_paper_id = citation['paperId']
-            fig.add_trace(go.Scatter(x=[paper_id, cited_paper_id], y=[0, 0], mode='lines', name=f"Citation: {cited_paper_id}"))
+            fig.add_trace(go.Scatter(x=[paper['paperId'], citation['paperId']], y=[0, 0], mode='lines'))
+
+    # Set up graph layout
+    fig.update_layout(
+        title="Paper Citation Network",
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
+    )
 
     return fig
 
