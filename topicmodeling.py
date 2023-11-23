@@ -14,8 +14,8 @@ def fetch_papers(topic, max_results=10, retry_limit=3, retry_delay=5):
 
     while len(papers) < max_results and retry_count < retry_limit:
         try:
-            paper = next(search_query).fill()
-            papers.append(paper.__dict__)
+            paper = next(search_query)
+            papers.append(paper)
         except StopIteration:
             break
         except Exception as e:
