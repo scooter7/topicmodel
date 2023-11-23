@@ -62,8 +62,9 @@ def main():
             graph_html_file = show_graph(G)
             st.components.v1.html(open(graph_html_file, 'r', encoding='utf-8').read(), height=600)
 
-            data = [{'Title': paper.bib['title'], 'Authors': paper.bib.get('author', 'N/A'), 
-                     'Year': paper.bib.get('year', 'N/A'), 'Citations': paper.bib.get('citedby', 0)} 
+            # Updated section for constructing the data table
+            data = [{'Title': paper['bib']['title'], 'Authors': paper['bib'].get('author', 'N/A'), 
+                     'Year': paper['bib'].get('year', 'N/A'), 'Citations': paper['bib'].get('citedby', 0)} 
                     for paper in papers]
             df = pd.DataFrame(data)
             st.write(df)
