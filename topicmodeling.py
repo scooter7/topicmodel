@@ -22,25 +22,27 @@ def fetch_crossref_articles(topic, max_results=10, min_citations=0, start_year=N
         return []
 
 def create_plotly_graph(papers):
-    edge_x = []
-    edge_y = []
     node_x = []
     node_y = []
     node_text = []
+    node_size = []
 
     for i, paper in enumerate(papers):
         node_x.append(i)
-        node_y.append(i)
-        node_text.append(paper['title'][0] if 'title' in paper else 'No Title')
+        node_y.append(len(papers) - i)  # To spread nodes vertically
+        node_text.append(paper.get('title', ['N/A'])[0] if 'title' in paper else 'No Title')
+        node_size.append(paper.get('is-referenced-by-count', 0) + 10)  # Adding 10 to ensure minimum size
 
     node_trace = go.Scatter(
         x=node_x, y=node_y,
         mode='markers+text',
         text=node_text,
-        marker=dict(size=10, line_width=2))
+        marker=dict(size=node_size, sizemode='area', sizeref=2.*max(node_size)/(40.**2), line_width=2),
+        hoverinfo='text')
 
     fig = go.Figure(data=[node_trace],
                     layout=go.Layout(
+                        title="Papers and Citation Counts",
                         showlegend=False,
                         hovermode='closest',
                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -53,8 +55,8 @@ def main():
     st.title("Scholarly Topic Modeling")
 
     topic = st.text_input("Enter a Topic", "Machine Learning")
-    max_results = st.slider("Max number of results", 5, 50, 10)
-    min_citations = st.slider("Minimum citations", 0, 100, 10)
+    max_results = st.slider("Max number of results", 5, 250, 10)
+    min_citations = st.slider("Minimum citations", 0, 10000, 10)
     start_year = st.number_input("Start Year", min_value=1900, max_value=2023, value=2000)
     end_year = st.number_input("End Year", min_value=1900, max_value=2023, value=2023)
     run_button = st.button('Run Query')
