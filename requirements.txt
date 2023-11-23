@@ -1,5 +1,6 @@
 streamlit
 scholarly
 pandas
-networkx
-pyvis
+plotly
+time
+logging
