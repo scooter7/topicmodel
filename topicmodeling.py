@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import plotly.graph_objects as go
+import pandas as pd
 import time
 
 def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retries=3):
@@ -11,7 +12,7 @@ def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_
         "fields": "title,authors,year,citations"
     }
 
-    papers = []  # Initialize the papers list
+    papers = []
     attempt = 0
 
     while attempt < retries and not papers:
@@ -38,19 +39,14 @@ def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_
 def create_network_graph(papers):
     fig = go.Figure()
 
-    # Add nodes (papers)
     for paper in papers:
-        title = paper.get('title', 'No Title')[0]  # Assuming title is a list
-        authors = ', '.join([author.get('name') for author in paper.get('authors', []) if 'name' in author])
-        node_label = f"{title} by {authors}"
-        fig.add_trace(go.Scatter(x=[paper['paperId']], y=[0], mode='markers+text', text=node_label, name=paper['paperId']))
+        paper_id = paper['paperId']
+        fig.add_trace(go.Scatter(x=[paper_id], y=[0], mode='markers+text', text=paper['title'], name=paper_id))
 
-        # Add edges (citations)
-        # This part needs to be adjusted based on how citations are structured in the Semantic Scholar data
         for citation in paper.get('citations', []):
-            fig.add_trace(go.Scatter(x=[paper['paperId'], citation['paperId']], y=[0, 0], mode='lines'))
+            cited_paper_id = citation['paperId']
+            fig.add_trace(go.Scatter(x=[paper_id, cited_paper_id], y=[0, 0], mode='lines'))
 
-    # Set up graph layout
     fig.update_layout(
         title="Paper Citation Network",
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
@@ -61,12 +57,12 @@ def create_network_graph(papers):
 
 def main():
     st.title("Semantic Scholar Citation Network")
-    topic = st.text_input("Enter a Topic", "Machine Learning")
-    max_results = st.slider("Max number of results", 5, 50, 10)
-    min_citations = st.slider("Minimum citations", 0, 100, 10)
-    start_year = st.number_input("Start Year", min_value=1900, max_value=2023, value=2000)
-    end_year = st.number_input("End Year", min_value=1900, max_value=2023, value=2023)
-    run_button = st.button('Run Query')
+    topic = st.text_input("Enter a Topic", "Machine Learning", key="topic_input")
+    max_results = st.slider("Max number of results", 5, 50, 10, key="max_results_slider")
+    min_citations = st.slider("Minimum citations", 0, 100, 10, key="min_citations_slider")
+    start_year = st.number_input("Start Year", min_value=1900, max_value=2023, value=2000, key="start_year_input")
+    end_year = st.number_input("End Year", min_value=1900, max_value=2023, value=2023, key="end_year_input")
+    run_button = st.button('Run Query', key="run_query_button")
 
     if run_button and topic:
         papers = fetch_semantic_scholar_papers(topic, max_results, min_citations, start_year, end_year)
@@ -74,7 +70,6 @@ def main():
             fig = create_network_graph(papers)
             st.plotly_chart(fig, use_container_width=True)
 
-            # Prepare data for the table
             table_data = [{
                 'Title': paper.get('title', ['N/A'])[0], 
                 'Authors': ', '.join([author.get('name') for author in paper.get('authors', []) if 'name' in author]),
@@ -82,14 +77,10 @@ def main():
                 'Citations': len(paper.get('citations', []))
             } for paper in papers]
 
-            # Display the table
             df = pd.DataFrame(table_data)
             st.write(df)
         else:
             st.write("No papers found with the given criteria.")
-
-if __name__ == "__main__":
-    main()
 
 if __name__ == "__main__":
     main()
