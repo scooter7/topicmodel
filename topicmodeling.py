@@ -61,7 +61,10 @@ def main():
     start_year = st.number_input("Start Year", min_value=1900, max_value=2023, value=2000)
     end_year = st.number_input("End Year", min_value=1900, max_value=2023, value=2023)
 
-    if topic:
+    # Run button
+    run_button = st.button('Run Query')
+
+    if run_button and topic:
         papers = fetch_papers(topic, max_results, min_citations, start_year, end_year)
         if papers:
             fig = create_plotly_graph(papers)
@@ -72,6 +75,8 @@ def main():
                     for paper in papers]
             df = pd.DataFrame(data)
             st.write(df)
+        else:
+            st.write("No papers found with the given criteria.")
 
 if __name__ == "__main__":
     main()
