@@ -85,7 +85,7 @@ def main():
             net.save_graph(path)
             HtmlFile = open(path, 'r', encoding='utf-8')
             source_code = HtmlFile.read()
-            components.html(source_code, width=700, height=750)
+            st.markdown(source_code, unsafe_allow_html=True)
 
             table_data = [{
                 'Title': ' '.join(paper.get('title', ['N/A'])) if paper.get('title') else 'N/A',
