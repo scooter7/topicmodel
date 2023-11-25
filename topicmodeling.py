@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 from pyvis.network import Network
-import streamlit.components.v1 as components
 import time  # Importing the time module
 
 def fetch_semantic_scholar_papers(topic, max_results=10, min_citations=0, start_year=None, end_year=None, retries=3):
